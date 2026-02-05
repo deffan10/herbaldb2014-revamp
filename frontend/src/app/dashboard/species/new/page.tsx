@@ -124,8 +124,9 @@ export default function NewSpeciesPage() {
         title: 'Berhasil',
         description: 'Spesies baru berhasil ditambahkan',
       });
+      queryClient.invalidateQueries({ queryKey: ['my-species'] });
       queryClient.invalidateQueries({ queryKey: ['species'] });
-      router.push('/dashboard/species');
+      router.push('/dashboard/submissions');
     },
     onError: (error: any) => {
       toast({
@@ -200,6 +201,7 @@ export default function NewSpeciesPage() {
                       <FormControl>
                         <Input placeholder="Curcuma longa" {...field} />
                       </FormControl>
+                      <FormDescription>Nama latin spesies</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -266,7 +268,7 @@ export default function NewSpeciesPage() {
                       <SelectContent>
                         {references.map((ref: any) => (
                           <SelectItem key={ref.id} value={ref.id.toString()}>
-                            {ref.name || ref.title}
+                            {ref.source_name}
                           </SelectItem>
                         ))}
                       </SelectContent>

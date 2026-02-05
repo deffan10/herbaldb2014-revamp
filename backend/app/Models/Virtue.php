@@ -13,14 +13,17 @@ class Virtue extends Model
     protected $fillable = [
         'species_id',
         'plant_part_id',
-        'usage_type',
+        'virtue_type',
         'description',
         'description_en',
+        'description_latin',
         'medical_term',
         'reference_id',
         'status',
         'created_by',
         'verified_by',
+        'is_legacy',
+        'legacy_id',
     ];
 
     public function species(): BelongsTo

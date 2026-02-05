@@ -4,6 +4,7 @@ export interface User {
   name: string;
   email: string;
   institution?: string;
+  whatsapp?: string;
   avatar_url?: string;
   is_active: boolean;
   email_verified_at?: string;
@@ -101,13 +102,15 @@ export interface Virtue {
   id: number;
   species_id: number;
   plant_part_id?: number;
-  usage_type?: string;
+  virtue_type?: string; // Changed from usage_type
   description: string;
   description_en?: string;
+  description_latin?: string;
   medical_term?: string;
   reference_id?: number;
   status: string;
   plant_part?: PlantPart;
+  plantPart?: PlantPart; // Alias for API response compatibility
   reference?: Reference;
 }
 

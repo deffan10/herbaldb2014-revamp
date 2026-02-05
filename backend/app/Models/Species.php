@@ -26,6 +26,8 @@ class Species extends Model
         'reference_id',
         'verified_at',
         'photo',
+        'is_legacy',
+        'legacy_id',
     ];
 
     protected $casts = [

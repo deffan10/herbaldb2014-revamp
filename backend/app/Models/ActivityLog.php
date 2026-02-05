@@ -64,6 +64,7 @@ class ActivityLog extends Model
             'deleted' => 'Dihapus',
             'status_changed' => 'Status Diubah',
             'photo_uploaded' => 'Foto Diunggah',
+            'photo_deleted' => 'Foto Dihapus',
             'submitted' => 'Diajukan Review',
             'approved' => 'Disetujui',
             'rejected' => 'Ditolak',

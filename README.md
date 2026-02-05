@@ -15,6 +15,7 @@ Database komprehensif tanaman herbal Indonesia dan senyawa bioaktifnya. Proyek i
 | Nama Lokal | 10,674 |
 | Khasiat | 6,612 |
 | Referensi | 24 |
+| Bagian Tanaman | 58 |
 | File MOL | 1,458 (59 linked) |
 
 ## 🏗️ Project Structure
@@ -68,6 +69,8 @@ php artisan migrate
 php artisan herbaldb:import-legacy --force  # Import 3,815 species
 php artisan serve --port=8001
 ```
+
+> Setelah menarik perubahan terbaru, jalankan kembali `php artisan migrate` untuk menambahkan kolom molekuler pada tabel `compounds` dan kolom `created_by` pada tabel `references`.
 
 ### Frontend Setup
 
@@ -142,7 +145,8 @@ Base URL: `http://localhost:8001/api/v1`
 | GET | `/compounds/{id}` | Compound detail |
 | GET | `/compounds/search` | Search compounds |
 | GET | `/stats` | Database statistics |
-| GET | `/references` | List references |
+| GET | `/references` | List/search references |
+| GET | `/plant-parts` | List plant parts |
 | GET | `/contributors` | Top contributors |
 
 ### Authentication
@@ -160,12 +164,20 @@ Base URL: `http://localhost:8001/api/v1`
 | PUT | `/species/{id}` | contributor/owner |
 | POST | `/species/{id}/submit` | contributor/owner |
 | POST | `/species/{id}/verify` | verifier |
+| PUT | `/species/{id}/status` | verifier |
+| POST | `/species/{id}/photo` | contributor/owner |
+| DELETE | `/species/{id}/photo` | contributor/owner |
 | DELETE | `/species/{id}` | admin |
 | POST | `/compounds` | contributor |
 | PUT | `/compounds/{id}` | contributor/owner |
 | POST | `/compounds/{id}/submit` | contributor/owner |
 | POST | `/compounds/{id}/verify` | verifier |
+| PUT | `/compounds/{id}/status` | verifier |
+| POST | `/compounds/{id}/contribute-molecular` | authenticated |
 | DELETE | `/compounds/{id}` | admin |
+| POST | `/references` | authenticated |
+| PUT | `/references/{id}` | contributor/verifier/admin |
+| DELETE | `/references/{id}` | admin |
 
 ## 📄 Frontend Pages
 
@@ -188,8 +200,10 @@ Base URL: `http://localhost:8001/api/v1`
 - `/dashboard/compounds` - Manage compounds (list, group filter)
 - `/dashboard/compounds/new` - Create new compound
 - `/dashboard/compounds/[id]/edit` - Edit compound
+- `/dashboard/references` - Manage references (search, add, edit, delete)
 - `/dashboard/reviews` - Review pending items (Verifier only)
 - `/dashboard/submissions` - View my submissions (Contributor)
+- `/dashboard/profile` - Edit profile + avatar
 
 ## 👥 User Roles & Workflow
 
@@ -324,13 +338,13 @@ server {
 
 ### Core Tables
 - `species` - Tanaman herbal (scientific_name, family, variety, description)
-- `compounds` - Senyawa bioaktif (name, formula, mol_weight, cas_number, mol_file)
+- `compounds` - Senyawa bioaktif (name, molecular_formula, molecular_weight, cas_number, smiles, inchi, inchi_key, mol_file_path, mol2_file_path)
 - `local_names` - Nama daerah (species_id, name, language)
 - `virtues` - Khasiat/manfaat (species_id, virtue)
 - `compound_species` - Pivot table relasi senyawa-spesies
 
 ### Supporting Tables
-- `references` - Sumber referensi
+- `references` - Sumber referensi (source_name, authors, year, type, url, created_by)
 - `compound_groups` - Klasifikasi senyawa
 - `plant_parts` - Bagian tanaman
 - `users`, `roles`, `permissions` - User management
@@ -361,6 +375,9 @@ server {
 - ✅ Dashboard submissions untuk Contributor
 - ✅ Dashboard reviews untuk Verifier
 - ✅ Image placeholder pada detail spesies
+- ✅ Kolom molekuler baru (formula, berat, CAS, SMILES, InChI, InChI Key) + kontribusi publik
+- ✅ Manajemen referensi di dashboard + kolom `created_by`
+- ✅ Endpoint plant parts untuk kontribusi khasiat per bagian tanaman
 
 ### v1.0.0 (2014) - Legacy
 - PHP procedural dengan MySQL

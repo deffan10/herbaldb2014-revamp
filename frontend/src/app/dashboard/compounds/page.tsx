@@ -272,7 +272,7 @@ export default function CompoundsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`/dashboard/compounds/${compound.id}`} className="flex items-center gap-2">
+                              <Link href={`/dashboard/compounds/${compound.id}/edit`} className="flex items-center gap-2">
                                 <Eye className="h-4 w-4" />
                                 Lihat Detail
                               </Link>

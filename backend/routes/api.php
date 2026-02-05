@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MolFileController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\DonationMethodController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PlantPartController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,9 @@ Route::prefix('v1')->group(function () {
     // Public reference routes
     Route::get('/references', [ReferenceController::class, 'index']);
     Route::get('/references/{reference}', [ReferenceController::class, 'show']);
+
+    // Public plant parts route
+    Route::get('/plant-parts', [PlantPartController::class, 'index']);
 
     // Public contributors route
     Route::get('/contributors', [StatsController::class, 'contributors']);
@@ -92,7 +96,10 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:species.create');
         Route::post('/species/{species}/verify', [SpeciesController::class, 'verify'])
             ->middleware('permission:species.verify');
+        Route::put('/species/{species}/status', [SpeciesController::class, 'updateStatus'])
+            ->middleware('permission:species.verify');
         Route::post('/species/{species}/photo', [SpeciesController::class, 'uploadPhoto']);
+        Route::delete('/species/{species}/photo', [SpeciesController::class, 'deletePhoto']);
         Route::post('/species/{species}/local-names', [SpeciesController::class, 'addLocalName']);
         Route::delete('/species/{species}/local-names/{localNameId}', [SpeciesController::class, 'deleteLocalName'])
             ->middleware('permission:species.edit');
@@ -115,12 +122,21 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:compounds.create');
         Route::post('/compounds/{compound}/verify', [CompoundController::class, 'verify'])
             ->middleware('permission:compounds.verify');
+        Route::put('/compounds/{compound}/status', [CompoundController::class, 'updateStatus'])
+            ->middleware('permission:compounds.verify');
         
         // Compound contributions (any authenticated user)
         Route::post('/compounds/{compound}/contribute-molecular', [CompoundController::class, 'contributeMolecularInfo']);
         Route::post('/compounds/{compound}/contribute-species', [CompoundController::class, 'contributeSpeciesLink']);
         Route::delete('/compounds/{compound}/species/{speciesId}', [CompoundController::class, 'removeSpeciesLink'])
             ->middleware('permission:compounds.edit');
+
+        // Reference management (any authenticated user can create)
+        Route::post('/references', [ReferenceController::class, 'store']);
+        Route::put('/references/{reference}', [ReferenceController::class, 'update'])
+            ->middleware('permission:species.edit');
+        Route::delete('/references/{reference}', [ReferenceController::class, 'destroy'])
+            ->middleware('role:admin');
 
         // Activity logs (for verifiers and admins)
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])

@@ -29,6 +29,10 @@ class Compound extends Model
         'created_by',
         'verified_by',
         'verified_at',
+        'is_legacy',
+        'legacy_id',
+        'source',
+        'species_source',
     ];
 
     protected $casts = [

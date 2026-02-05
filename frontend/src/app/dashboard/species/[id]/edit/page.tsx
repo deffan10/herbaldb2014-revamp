@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -17,6 +17,10 @@ import {
   MapPin,
   Heart,
   Send,
+  Camera,
+  Upload,
+  ImageIcon,
+  X,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,6 +93,12 @@ export default function EditSpeciesPage() {
   const { toast } = useToast();
   const { user, isAdmin, isVerifier } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Photo upload state
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const speciesId = params.id as string;
 
@@ -165,12 +175,68 @@ export default function EditSpeciesPage() {
   const { fields: localNameFields, append: appendLocalName, remove: removeLocalName } = useFieldArray({
     control: form.control,
     name: 'local_names',
+    keyName: 'fieldId',
   });
+
+  // Handle local name deletion with API call
+  const handleRemoveLocalName = async (index: number) => {
+    const localName = localNameFields[index];
+    
+    // If local name has an ID, it exists in database - delete via API
+    if (localName.id) {
+      try {
+        await api.delete(`/species/${speciesId}/local-names/${localName.id}`);
+        toast({
+          title: 'Berhasil',
+          description: 'Nama lokal berhasil dihapus.',
+        });
+        queryClient.invalidateQueries({ queryKey: ['species', speciesId] });
+      } catch (err: any) {
+        toast({
+          title: 'Error',
+          description: err.response?.data?.message || 'Gagal menghapus nama lokal.',
+          variant: 'destructive',
+        });
+        return; // Don't remove from form if API call failed
+      }
+    }
+    
+    // Remove from form array
+    removeLocalName(index);
+  };
 
   const { fields: virtueFields, append: appendVirtue, remove: removeVirtue } = useFieldArray({
     control: form.control,
     name: 'virtues',
+    keyName: 'fieldId',
   });
+
+  // Handle virtue deletion with API call
+  const handleRemoveVirtue = async (index: number) => {
+    const virtue = virtueFields[index];
+    
+    // If virtue has an ID, it exists in database - delete via API
+    if (virtue.id) {
+      try {
+        await api.delete(`/species/${speciesId}/virtues/${virtue.id}`);
+        toast({
+          title: 'Berhasil',
+          description: 'Khasiat berhasil dihapus.',
+        });
+        queryClient.invalidateQueries({ queryKey: ['species', speciesId] });
+      } catch (err: any) {
+        toast({
+          title: 'Error',
+          description: err.response?.data?.message || 'Gagal menghapus khasiat.',
+          variant: 'destructive',
+        });
+        return; // Don't remove from form if API call failed
+      }
+    }
+    
+    // Remove from form array
+    removeVirtue(index);
+  };
 
   const updateMutation = useMutation({
     mutationFn: (data: SpeciesFormValues) => speciesApi.update(parseInt(speciesId), data as any),
@@ -179,8 +245,9 @@ export default function EditSpeciesPage() {
         title: 'Berhasil',
         description: 'Data spesies berhasil diperbarui',
       });
+      queryClient.invalidateQueries({ queryKey: ['my-species'] });
       queryClient.invalidateQueries({ queryKey: ['species'] });
-      router.push('/dashboard/species');
+      router.push('/dashboard/submissions');
     },
     onError: (error: any) => {
       toast({
@@ -198,8 +265,9 @@ export default function EditSpeciesPage() {
         title: 'Berhasil',
         description: 'Spesies berhasil diajukan untuk verifikasi',
       });
+      queryClient.invalidateQueries({ queryKey: ['my-species'] });
       queryClient.invalidateQueries({ queryKey: ['species'] });
-      router.push('/dashboard/species');
+      router.push('/dashboard/submissions');
     },
     onError: (error: any) => {
       toast({
@@ -229,6 +297,24 @@ export default function EditSpeciesPage() {
     },
   });
 
+  const statusChangeMutation = useMutation({
+    mutationFn: (newStatus: string) => api.put(`/species/${speciesId}/status`, { status: newStatus }),
+    onSuccess: (_, newStatus) => {
+      toast({
+        title: 'Berhasil',
+        description: `Status spesies berhasil diubah menjadi ${newStatus}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['species'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Gagal',
+        description: error.response?.data?.message || 'Gagal mengubah status',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSubmit = async (data: SpeciesFormValues) => {
     setIsSubmitting(true);
     try {
@@ -236,6 +322,93 @@ export default function EditSpeciesPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Photo upload handlers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Error',
+          description: 'Hanya file gambar yang diizinkan.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'Error',
+          description: 'Ukuran file maksimal 5MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPreviewImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    if (!selectedFile) return;
+    
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', selectedFile);
+      
+      await api.post(`/species/${speciesId}/photo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      toast({
+        title: 'Berhasil',
+        description: 'Gambar berhasil diunggah.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['species', speciesId] });
+      setSelectedFile(null);
+      setPreviewImage(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.response?.data?.message || 'Gagal mengunggah gambar.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!speciesData?.photo) return;
+    
+    setUploadingPhoto(true);
+    try {
+      await api.delete(`/species/${speciesId}/photo`);
+      
+      toast({
+        title: 'Berhasil',
+        description: 'Gambar berhasil dihapus.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['species', speciesId] });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.response?.data?.message || 'Gagal menghapus gambar.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    setPreviewImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const speciesData = (species as any)?.data || species;
@@ -302,6 +475,24 @@ export default function EditSpeciesPage() {
         </div>
 
         <div className="flex gap-2">
+          {/* Status change for verifiers */}
+          {isVerifier() && (
+            <Select
+              value={speciesData?.status}
+              onValueChange={(value) => statusChangeMutation.mutate(value)}
+              disabled={statusChangeMutation.isPending}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Ubah Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending">Pending Review</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           {canSubmit && (
             <Button
               variant="outline"
@@ -357,6 +548,120 @@ export default function EditSpeciesPage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Photo Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Foto Spesies
+              </CardTitle>
+              <CardDescription>
+                Upload gambar untuk spesies ini
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {/* Current/Preview Image */}
+                <div className="w-48 h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+                  {previewImage ? (
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                  ) : speciesData?.photo ? (
+                    <img 
+                      src={speciesData.photo.startsWith('http') ? speciesData.photo : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/${speciesData.photo}`} 
+                      alt={speciesData.scientific_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400">
+                      <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+                      <span className="text-sm">Belum ada foto</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Controls */}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="photo-upload"
+                    />
+                    <label
+                      htmlFor="photo-upload"
+                      className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Pilih Gambar
+                    </label>
+                  </div>
+                  
+                  {selectedFile && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">{selectedFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSelectedFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedFile && (
+                    <Button
+                      type="button"
+                      onClick={handleUploadPhoto}
+                      disabled={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Mengunggah...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Foto
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {speciesData?.photo && !selectedFile && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={handleDeletePhoto}
+                      disabled={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Menghapus...
+                        </>
+                      ) : (
+                        <>
+                          <X className="mr-2 h-4 w-4" />
+                          Hapus Foto
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  <p className="text-xs text-gray-500">
+                    Format: JPEG, PNG, GIF, WebP. Maksimal 5MB.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -390,6 +695,7 @@ export default function EditSpeciesPage() {
                       <FormControl>
                         <Input placeholder="Curcuma longa" disabled={!canEdit} {...field} />
                       </FormControl>
+                      <FormDescription>Nama latin spesies</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -457,7 +763,7 @@ export default function EditSpeciesPage() {
                       <SelectContent>
                         {references.map((ref: any) => (
                           <SelectItem key={ref.id} value={ref.id.toString()}>
-                            {ref.name || ref.title}
+                            {ref.source_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -549,7 +855,7 @@ export default function EditSpeciesPage() {
               ) : (
                 <div className="space-y-4">
                   {localNameFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-start">
+                    <div key={field.fieldId} className="flex gap-3 items-start">
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                         <FormField
                           control={form.control}
@@ -594,7 +900,7 @@ export default function EditSpeciesPage() {
                           variant="ghost"
                           size="icon"
                           className="text-red-500 hover:text-red-700"
-                          onClick={() => removeLocalName(index)}
+                          onClick={() => handleRemoveLocalName(index)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -638,7 +944,7 @@ export default function EditSpeciesPage() {
               ) : (
                 <div className="space-y-4">
                   {virtueFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-start">
+                    <div key={field.fieldId} className="flex gap-3 items-start">
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="md:col-span-2">
                           <FormField
@@ -688,7 +994,7 @@ export default function EditSpeciesPage() {
                           variant="ghost"
                           size="icon"
                           className="text-red-500 hover:text-red-700"
-                          onClick={() => removeVirtue(index)}
+                          onClick={() => handleRemoveVirtue(index)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

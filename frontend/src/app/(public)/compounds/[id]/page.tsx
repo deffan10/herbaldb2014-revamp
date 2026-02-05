@@ -74,6 +74,20 @@ export default function CompoundDetailPage() {
       router.push('/register');
       return;
     }
+    
+    // Check if token exists
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast({
+          title: 'Sesi Berakhir',
+          description: 'Silakan login kembali untuk melanjutkan.',
+        });
+        router.push('/login');
+        return;
+      }
+    }
+    
     // Pre-fill with existing data
     if (compound) {
       setMolFormData({
@@ -94,12 +108,40 @@ export default function CompoundDetailPage() {
     setSubmittingMolInfo(true);
     try {
       const dataToSubmit: Record<string, any> = {};
-      if (molFormData.molecular_formula) dataToSubmit.molecular_formula = molFormData.molecular_formula;
-      if (molFormData.molecular_weight) dataToSubmit.molecular_weight = parseFloat(molFormData.molecular_weight);
-      if (molFormData.smiles) dataToSubmit.smiles = molFormData.smiles;
-      if (molFormData.inchi) dataToSubmit.inchi = molFormData.inchi;
-      if (molFormData.inchi_key) dataToSubmit.inchi_key = molFormData.inchi_key;
-      if (molFormData.cas_number) dataToSubmit.cas_number = molFormData.cas_number;
+      
+      // Only include non-empty values
+      if (molFormData.molecular_formula?.trim()) {
+        dataToSubmit.molecular_formula = molFormData.molecular_formula.trim();
+      }
+      if (molFormData.molecular_weight?.trim()) {
+        const weight = parseFloat(molFormData.molecular_weight);
+        if (!isNaN(weight)) {
+          dataToSubmit.molecular_weight = weight;
+        }
+      }
+      if (molFormData.smiles?.trim()) {
+        dataToSubmit.smiles = molFormData.smiles.trim();
+      }
+      if (molFormData.inchi?.trim()) {
+        dataToSubmit.inchi = molFormData.inchi.trim();
+      }
+      if (molFormData.inchi_key?.trim()) {
+        dataToSubmit.inchi_key = molFormData.inchi_key.trim();
+      }
+      if (molFormData.cas_number?.trim()) {
+        dataToSubmit.cas_number = molFormData.cas_number.trim();
+      }
+
+      // Check if at least one field is filled
+      if (Object.keys(dataToSubmit).length === 0) {
+        toast({
+          title: 'Error',
+          description: 'Mohon isi setidaknya satu field.',
+          variant: 'destructive',
+        });
+        setSubmittingMolInfo(false);
+        return;
+      }
 
       const response = await api.post(`/compounds/${compound.id}/contribute-molecular`, dataToSubmit);
       
@@ -110,11 +152,15 @@ export default function CompoundDetailPage() {
       });
       setMolInfoModalOpen(false);
     } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Gagal menyimpan informasi.';
+      
       toast({
         title: 'Error',
-        description: err.response?.data?.message || 'Gagal menyimpan informasi.',
+        description: errorMessage,
         variant: 'destructive',
       });
+      
+      // Error already surfaced via toast
     } finally {
       setSubmittingMolInfo(false);
     }
@@ -636,7 +682,7 @@ export default function CompoundDetailPage() {
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="mol-formula">Molecular Formula</Label>
                 <Input
                   id="mol-formula"
@@ -645,7 +691,7 @@ export default function CompoundDetailPage() {
                   onChange={(e) => setMolFormData({ ...molFormData, molecular_formula: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="mol-weight">Molecular Weight</Label>
                 <Input
                   id="mol-weight"
@@ -657,7 +703,7 @@ export default function CompoundDetailPage() {
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="cas-number">CAS Number</Label>
               <Input
                 id="cas-number"
@@ -666,7 +712,7 @@ export default function CompoundDetailPage() {
                 onChange={(e) => setMolFormData({ ...molFormData, cas_number: e.target.value })}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="smiles">SMILES</Label>
               <Input
                 id="smiles"
@@ -675,7 +721,7 @@ export default function CompoundDetailPage() {
                 onChange={(e) => setMolFormData({ ...molFormData, smiles: e.target.value })}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="inchi">InChI</Label>
               <Input
                 id="inchi"
@@ -684,7 +730,7 @@ export default function CompoundDetailPage() {
                 onChange={(e) => setMolFormData({ ...molFormData, inchi: e.target.value })}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="inchi-key">InChI Key</Label>
               <Input
                 id="inchi-key"
@@ -728,9 +774,9 @@ export default function CompoundDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label>Cari Spesies</Label>
-              <div className="relative mt-2">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Ketik nama ilmiah atau nama lokal..."

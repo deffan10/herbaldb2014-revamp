@@ -136,8 +136,10 @@ export default function SpeciesDetailPage() {
   // Virtue/Use contribution
   const [virtueModalOpen, setVirtueModalOpen] = useState(false);
   const [newVirtueDescription, setNewVirtueDescription] = useState('');
-  const [newVirtueUsageType, setNewVirtueUsageType] = useState('');
+  const [newVirtueType, setNewVirtueType] = useState<'traditional' | 'scientific' | 'clinical'>('traditional');
+  const [newVirtuePlantPartId, setNewVirtuePlantPartId] = useState<number | undefined>();
   const [submittingVirtue, setSubmittingVirtue] = useState(false);
+  const [plantParts, setPlantParts] = useState<Array<{ id: number; name: string }>>([]);
 
   const handleAddLocalNameClick = () => {
     if (!isAuthenticated) {
@@ -204,7 +206,8 @@ export default function SpeciesDetailPage() {
     try {
       const response = await api.post(`/species/${species.id}/virtues`, {
         description: newVirtueDescription.trim(),
-        usage_type: newVirtueUsageType.trim() || null,
+        plant_part_id: newVirtuePlantPartId || null,
+        virtue_type: newVirtueType,
       });
       
       // Update species with new virtue
@@ -219,13 +222,15 @@ export default function SpeciesDetailPage() {
       });
       setVirtueModalOpen(false);
       setNewVirtueDescription('');
-      setNewVirtueUsageType('');
+      setNewVirtueType('traditional');
+      setNewVirtuePlantPartId(undefined);
     } catch (err: any) {
       toast({
         title: 'Error',
         description: err.response?.data?.message || 'Gagal menambahkan manfaat.',
         variant: 'destructive',
       });
+      console.error('Error adding virtue:', err);
     } finally {
       setSubmittingVirtue(false);
     }
@@ -251,6 +256,29 @@ export default function SpeciesDetailPage() {
 
     fetchSpecies();
   }, [params.id]);
+
+  // Fetch plant parts for virtue form
+  useEffect(() => {
+    const fetchPlantParts = async () => {
+      try {
+        const response = await api.get('/plant-parts');
+        const data = (response as any).data;
+        // Handle both array and paginated response
+        if (Array.isArray(data)) {
+          setPlantParts(data);
+        } else if (data?.data && Array.isArray(data.data)) {
+          setPlantParts(data.data);
+        } else {
+          setPlantParts([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch plant parts:', err);
+        setPlantParts([]);
+      }
+    };
+
+    fetchPlantParts();
+  }, []);
 
   if (loading) {
     return (
@@ -570,20 +598,22 @@ export default function SpeciesDetailPage() {
                               className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-colors"
                             >
                               <div className="flex items-center gap-2 mb-2">
-                                {virtue.plant_part && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {virtue.plant_part.name}
+                                {(virtue.plant_part || virtue.plantPart) && (
+                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                    {(virtue.plant_part || virtue.plantPart)?.name}
                                   </Badge>
                                 )}
-                                {virtue.usage_type && (
+                                {virtue.virtue_type && (
                                   <Badge className="bg-purple-100 text-purple-800 text-xs">
-                                    {virtue.usage_type}
+                                    {virtue.virtue_type === 'traditional' ? 'Tradisional' : 
+                                     virtue.virtue_type === 'scientific' ? 'Ilmiah' : 
+                                     virtue.virtue_type === 'clinical' ? 'Klinis' : virtue.virtue_type}
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-gray-700 text-sm line-clamp-3">{virtue.description}</p>
+                              <p className="text-gray-700 text-sm">{virtue.description}</p>
                               {virtue.description_en && (
-                                <p className="text-gray-500 text-xs mt-2 italic line-clamp-2">
+                                <p className="text-gray-500 text-xs mt-2 italic">
                                   {virtue.description_en}
                                 </p>
                               )}
@@ -802,7 +832,7 @@ export default function SpeciesDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="local-name">Nama Lokal *</Label>
               <Input
                 id="local-name"
@@ -811,7 +841,7 @@ export default function SpeciesDetailPage() {
                 onChange={(e) => setNewLocalName(e.target.value)}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="region">Daerah/Region (opsional)</Label>
               <Input
                 id="region"
@@ -855,7 +885,7 @@ export default function SpeciesDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="virtue-description">Deskripsi Manfaat *</Label>
               <Input
                 id="virtue-description"
@@ -864,14 +894,34 @@ export default function SpeciesDetailPage() {
                 onChange={(e) => setNewVirtueDescription(e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="usage-type">Jenis Penggunaan (opsional)</Label>
-              <Input
-                id="usage-type"
-                placeholder="Contoh: Obat tradisional, Bumbu masak, Kosmetik..."
-                value={newVirtueUsageType}
-                onChange={(e) => setNewVirtueUsageType(e.target.value)}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="plant-part">Bagian Tanaman (opsional)</Label>
+              <select
+                id="plant-part"
+                value={newVirtuePlantPartId || ''}
+                onChange={(e) => setNewVirtuePlantPartId(e.target.value ? parseInt(e.target.value) : undefined)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">-- Pilih bagian tanaman --</option>
+                {Array.isArray(plantParts) && plantParts.map((part) => (
+                  <option key={part.id} value={part.id}>
+                    {part.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="virtue-type">Jenis Manfaat</Label>
+              <select
+                id="virtue-type"
+                value={newVirtueType}
+                onChange={(e) => setNewVirtueType(e.target.value as 'traditional' | 'scientific' | 'clinical')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="traditional">Manfaat Tradisional</option>
+                <option value="scientific">Manfaat Ilmiah</option>
+                <option value="clinical">Manfaat Klinis</option>
+              </select>
             </div>
           </div>
           <DialogFooter>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Species;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class SpeciesController extends Controller
 {
@@ -15,11 +16,42 @@ class SpeciesController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Species::query();
+        
+        // Get user from Bearer token (works on public routes without middleware)
+        $user = null;
+        if ($token = $request->bearerToken()) {
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $user = $accessToken->tokenable;
+            }
+        }
 
-        // Filter by status (default: published for guests)
-        if (!$request->user() || !$request->user()->isVerifier()) {
+        // Filter by creator (for my submissions) - must be applied first
+        $filterByCreator = false;
+        if ($request->has('created_by') && $user && is_numeric($request->created_by)) {
+            $createdById = (int) $request->created_by;
+            $currentUserId = (int) $user->id;
+            // Only allow users to filter by their own ID unless they are admin/verifier
+            if ($createdById === $currentUserId || $user->isVerifier()) {
+                $query->where('created_by', $createdById);
+                // Exclude legacy/sample data from user contributions
+                $query->where('is_legacy', false);
+                $filterByCreator = true;
+            }
+        }
+
+        // Filter by status
+        // If filtering by own submissions, allow all statuses
+        if ($filterByCreator && (int) $request->created_by === (int) $user->id) {
+            // User viewing own submissions - allow all statuses or filter if specified
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+        } elseif (!$user || !$user->isVerifier()) {
+            // Non-verifiers can only see published
             $query->where('status', 'published');
         } elseif ($request->has('status')) {
+            // Verifiers/admins can filter by status
             $query->where('status', $request->status);
         }
 
@@ -87,6 +119,14 @@ class SpeciesController extends Controller
 
         $species = Species::create($validated);
 
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $species,
+            'created',
+            $validated,
+            "Spesies baru '{$species->scientific_name}' ditambahkan"
+        );
+
         return response()->json([
             'message' => 'Species created successfully',
             'data' => $species->load(['reference', 'creator'])
@@ -129,7 +169,16 @@ class SpeciesController extends Controller
             'status' => 'sometimes|in:draft,pending,published,rejected',
         ]);
 
+        $oldValues = $species->only(array_keys($validated));
         $species->update($validated);
+
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $species,
+            'updated',
+            ['old' => $oldValues, 'new' => $validated],
+            "Spesies '{$species->scientific_name}' diperbarui"
+        );
 
         return response()->json([
             'message' => 'Species updated successfully',
@@ -197,6 +246,40 @@ class SpeciesController extends Controller
     }
 
     /**
+     * Update species status (verifier/admin only).
+     */
+    public function updateStatus(Request $request, Species $species): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:draft,pending,published,rejected',
+        ]);
+
+        $oldStatus = $species->status;
+        $newStatus = $validated['status'];
+
+        $species->update([
+            'status' => $newStatus,
+        ]);
+
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $species,
+            'status_changed',
+            [
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'changed_by' => $request->user()->id,
+            ],
+            "Status spesies '{$species->scientific_name}' diubah dari '{$oldStatus}' menjadi '{$newStatus}'"
+        );
+
+        return response()->json([
+            'message' => "Status berhasil diubah menjadi {$newStatus}",
+            'data' => $species->fresh()
+        ]);
+    }
+
+    /**
      * Get list of families for filter.
      */
     public function families(): JsonResponse
@@ -240,6 +323,39 @@ class SpeciesController extends Controller
         return response()->json([
             'message' => 'Photo uploaded successfully',
             'photo' => 'storage/' . $path,
+        ]);
+    }
+
+    /**
+     * Delete species photo.
+     */
+    public function deletePhoto(Species $species): JsonResponse
+    {
+        if (!$species->photo) {
+            return response()->json([
+                'message' => 'No photo to delete',
+            ]);
+        }
+
+        // Delete file from storage
+        $photoPath = str_replace('storage/', '', $species->photo);
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($photoPath);
+
+        // Update species
+        $species->update([
+            'photo' => null,
+        ]);
+
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $species,
+            'photo_deleted',
+            [],
+            "Foto untuk spesies '{$species->scientific_name}' dihapus"
+        );
+
+        return response()->json([
+            'message' => 'Photo deleted successfully',
         ]);
     }
 
@@ -313,13 +429,15 @@ class SpeciesController extends Controller
     {
         $validated = $request->validate([
             'description' => 'required|string|max:500',
-            'usage_type' => 'nullable|string|max:100',
+            'plant_part_id' => 'nullable|integer|exists:plant_parts,id',
+            'virtue_type' => 'nullable|in:traditional,scientific,clinical',
             'description_en' => 'nullable|string|max:500',
         ]);
 
         $virtue = $species->virtues()->create([
             'description' => $validated['description'],
-            'usage_type' => $validated['usage_type'] ?? null,
+            'plant_part_id' => $validated['plant_part_id'] ?? null,
+            'virtue_type' => $validated['virtue_type'] ?? 'traditional',
             'description_en' => $validated['description_en'] ?? null,
             'status' => 'pending', // Needs verification
             'created_by' => $request->user()->id,
@@ -332,7 +450,7 @@ class SpeciesController extends Controller
             [
                 'virtue_id' => $virtue->id,
                 'description' => $virtue->description,
-                'usage_type' => $virtue->usage_type,
+                'virtue_type' => $virtue->virtue_type,
             ],
             "Manfaat '{$virtue->description}' ditambahkan ke spesies '{$species->scientific_name}'"
         );
@@ -357,7 +475,7 @@ class SpeciesController extends Controller
             [
                 'virtue_id' => $virtue->id,
                 'description' => $virtue->description,
-                'usage_type' => $virtue->usage_type,
+                'virtue_type' => $virtue->virtue_type,
             ],
             "Manfaat '{$virtue->description}' dihapus dari spesies '{$species->scientific_name}'"
         );

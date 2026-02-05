@@ -80,10 +80,10 @@ export default function ProfilePage() {
       if (data.institution) formData.append('institution', data.institution);
       if (data.whatsapp) formData.append('whatsapp', data.whatsapp);
       if (avatarFile) formData.append('avatar', avatarFile);
+      formData.append('_method', 'PUT');
 
       const response = await api.post('/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        params: { _method: 'PUT' },
       });
 
       if (response.data.user) {

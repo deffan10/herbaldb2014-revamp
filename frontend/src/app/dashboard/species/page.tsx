@@ -238,7 +238,7 @@ export default function SpeciesPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`/dashboard/species/${species.id}`} className="flex items-center gap-2">
+                              <Link href={`/dashboard/species/${species.id}/edit`} className="flex items-center gap-2">
                                 <Eye className="h-4 w-4" />
                                 View Details
                               </Link>

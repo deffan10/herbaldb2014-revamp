@@ -43,8 +43,8 @@ const compoundFormSchema = z.object({
   metabolite_id: z.string().max(100).optional(),
   pubchem_id: z.string().max(20).optional(),
   compound_group_id: z.number().optional().nullable(),
-  formula: z.string().max(100).optional(),
-  mol_weight: z.string().max(50).optional(),
+  molecular_formula: z.string().max(100).optional(),
+  molecular_weight: z.string().max(50).optional(),
   cas_number: z.string().max(50).optional(),
 });
 
@@ -70,8 +70,8 @@ export default function NewCompoundPage() {
       metabolite_id: '',
       pubchem_id: '',
       compound_group_id: undefined,
-      formula: '',
-      mol_weight: '',
+      molecular_formula: '',
+      molecular_weight: '',
       cas_number: '',
     },
   });
@@ -180,7 +180,7 @@ export default function NewCompoundPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="formula"
+                  name="molecular_formula"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Formula Kimia</FormLabel>
@@ -193,7 +193,7 @@ export default function NewCompoundPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="mol_weight"
+                  name="molecular_weight"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Berat Molekul</FormLabel>

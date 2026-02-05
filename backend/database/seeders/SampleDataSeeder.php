@@ -35,6 +35,15 @@ class SampleDataSeeder extends Seeder
         ]);
         $verifier->assignRole('verifier');
 
+        $contributor = User::create([
+            'name' => 'Contributor HerbalDB',
+            'email' => 'contributor@herbaldb.com',
+            'password' => Hash::make('contrib123'),
+            'institution' => 'HerbalDB Institute',
+            'is_active' => true,
+        ]);
+        $contributor->assignRole('contributor');
+
         $ref1 = Reference::create(['source_name' => 'Flora of Java', 'authors' => 'Backer & Bakhuizen', 'year' => 1965]);
         $ref2 = Reference::create(['source_name' => 'Indonesian Medicinal Plants', 'authors' => 'Heyne', 'year' => 1987]);
 
@@ -73,6 +82,7 @@ class SampleDataSeeder extends Seeder
                 'verified_by' => $admin->id,
                 'verified_at' => now(),
                 'status' => 'published',
+                'is_legacy' => true, // Sample data should not count as user contribution
             ]);
 
             foreach ($data['local_names'] as $localName) {
@@ -92,6 +102,7 @@ class SampleDataSeeder extends Seeder
                     'reference_id' => $ref2->id,
                     'status' => 'published',
                     'created_by' => $admin->id,
+                    'is_legacy' => true, // Sample data should not count as user contribution
                 ]);
             }
 
@@ -104,6 +115,7 @@ class SampleDataSeeder extends Seeder
                         'created_by' => $admin->id,
                         'verified_by' => $admin->id,
                         'verified_at' => now(),
+                        'is_legacy' => true, // Sample data should not count as user contribution
                     ]
                 );
                 $species->compounds()->attach($compound->id, ['plant_part_id' => $plantParts['Rhizome']->id]);

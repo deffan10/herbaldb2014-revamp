@@ -7,6 +7,7 @@ use App\Models\Compound;
 use App\Models\CompoundGroup;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class CompoundController extends Controller
 {
@@ -16,11 +17,42 @@ class CompoundController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Compound::query();
+        
+        // Get user from Bearer token (works on public routes without middleware)
+        $user = null;
+        if ($token = $request->bearerToken()) {
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $user = $accessToken->tokenable;
+            }
+        }
+
+        // Filter by creator (for my submissions) - must be applied first
+        $filterByCreator = false;
+        if ($request->has('created_by') && $user && is_numeric($request->created_by)) {
+            $createdById = (int) $request->created_by;
+            $currentUserId = (int) $user->id;
+            // Only allow users to filter by their own ID unless they are admin/verifier
+            if ($createdById === $currentUserId || $user->isVerifier()) {
+                $query->where('created_by', $createdById);
+                // Exclude legacy/sample data from user contributions
+                $query->where('is_legacy', false);
+                $filterByCreator = true;
+            }
+        }
 
         // Filter by status
-        if (!$request->user() || !$request->user()->isVerifier()) {
+        // If filtering by own submissions, allow all statuses
+        if ($filterByCreator && (int) $request->created_by === (int) $user->id) {
+            // User viewing own submissions - allow all statuses or filter if specified
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+        } elseif (!$user || !$user->isVerifier()) {
+            // Non-verifiers can only see published
             $query->where('status', 'published');
         } elseif ($request->has('status')) {
+            // Verifiers/admins can filter by status
             $query->where('status', $request->status);
         }
 
@@ -85,6 +117,14 @@ class CompoundController extends Controller
 
         $compound = Compound::create($validated);
 
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $compound,
+            'created',
+            $validated,
+            "Senyawa baru '{$compound->name}' ditambahkan"
+        );
+
         return response()->json([
             'message' => 'Compound created successfully',
             'data' => $compound->load('group')
@@ -123,7 +163,16 @@ class CompoundController extends Controller
             'status' => 'sometimes|in:draft,pending,published,rejected',
         ]);
 
+        $oldValues = $compound->only(array_keys($validated));
         $compound->update($validated);
+
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $compound,
+            'updated',
+            ['old' => $oldValues, 'new' => $validated],
+            "Senyawa '{$compound->name}' diperbarui"
+        );
 
         return response()->json([
             'message' => 'Compound updated successfully',
@@ -148,7 +197,7 @@ class CompoundController extends Controller
      */
     public function groups(): JsonResponse
     {
-        $groups = CompoundGroup::orderBy('group_name')->get();
+        $groups = CompoundGroup::orderBy('name')->get();
         return response()->json($groups);
     }
 
@@ -251,46 +300,106 @@ class CompoundController extends Controller
     }
 
     /**
+     * Update compound status (verifier/admin only).
+     */
+    public function updateStatus(Request $request, Compound $compound): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:draft,pending,published,rejected',
+        ]);
+
+        $oldStatus = $compound->status;
+        $newStatus = $validated['status'];
+
+        $compound->update([
+            'status' => $newStatus,
+        ]);
+
+        // Log the activity
+        \App\Models\ActivityLog::log(
+            $compound,
+            'status_changed',
+            [
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'changed_by' => $request->user()->id,
+            ],
+            "Status senyawa '{$compound->name}' diubah dari '{$oldStatus}' menjadi '{$newStatus}'"
+        );
+
+        return response()->json([
+            'message' => "Status berhasil diubah menjadi {$newStatus}",
+            'data' => $compound->fresh('group')
+        ]);
+    }
+
+    /**
+     * Contribute molecular information (authenticated users).
+                'data' => $compound->fresh('group')
+            ]);
+        }
+    }
+
+    /**
      * Contribute molecular information (authenticated users).
      */
     public function contributeMolecularInfo(Request $request, Compound $compound): JsonResponse
     {
-        $validated = $request->validate([
-            'molecular_formula' => 'nullable|string|max:100',
-            'molecular_weight' => 'nullable|numeric',
-            'smiles' => 'nullable|string|max:2000',
-            'inchi' => 'nullable|string|max:2000',
-            'inchi_key' => 'nullable|string|max:50',
-            'cas_number' => 'nullable|string|max:50',
-        ]);
+        try {
+            $validated = $request->validate([
+                'molecular_formula' => 'nullable|string|max:100',
+                'molecular_weight' => 'nullable|numeric',
+                'smiles' => 'nullable|string|max:2000',
+                'inchi' => 'nullable|string|max:2000',
+                'inchi_key' => 'nullable|string|max:50',
+                'cas_number' => 'nullable|string|max:50',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         // Filter out null/empty values
         $changes = array_filter($validated, fn($v) => $v !== null && $v !== '');
         
         if (empty($changes)) {
             return response()->json([
-                'message' => 'No data to update',
+                'message' => 'Mohon isi setidaknya satu field untuk diperbarui.',
             ], 400);
         }
 
-        // Log the activity
-        \App\Models\ActivityLog::log(
-            $compound,
-            'molecular_info_contributed',
-            [
-                'contributed_by' => $request->user()->id,
+        try {
+            // Log the activity
+            \App\Models\ActivityLog::log(
+                $compound,
+                'molecular_info_contributed',
+                [
+                    'contributed_by' => $request->user()->id,
+                    'changes' => $changes,
+                ],
+                "Informasi molekuler ditambahkan untuk senyawa '{$compound->name}'"
+            );
+
+            // Apply changes (for now, direct update - could be pending review later)
+            $compound->update($changes);
+
+            return response()->json([
+                'message' => 'Informasi molekuler berhasil ditambahkan',
+                'data' => $compound->fresh('group'),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error updating molecular info', [
+                'compound_id' => $compound->id,
+                'error' => $e->getMessage(),
                 'changes' => $changes,
-            ],
-            "Informasi molekuler ditambahkan untuk senyawa '{$compound->name}'"
-        );
-
-        // Apply changes (for now, direct update - could be pending review later)
-        $compound->update($changes);
-
-        return response()->json([
-            'message' => 'Molecular information contributed successfully',
-            'data' => $compound->fresh('group'),
-        ]);
+            ]);
+            
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

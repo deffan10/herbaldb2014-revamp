@@ -18,6 +18,7 @@ import {
   User,
   History,
   Heart,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -69,6 +70,12 @@ const navItems: NavItem[] = [
     title: 'Compounds',
     href: '/dashboard/compounds',
     icon: FlaskConical,
+    roles: ['admin', 'verifier', 'contributor'],
+  },
+  {
+    title: 'References',
+    href: '/dashboard/references',
+    icon: BookOpen,
     roles: ['admin', 'verifier', 'contributor'],
   },
   {

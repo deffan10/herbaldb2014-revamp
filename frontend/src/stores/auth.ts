@@ -56,7 +56,9 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true, 
             isLoading: false 
           });
-          localStorage.setItem('auth_token', token);
+          if (token) {
+            localStorage.setItem('auth_token', token);
+          }
         } catch (error) {
           set({ isLoading: false });
           throw error;

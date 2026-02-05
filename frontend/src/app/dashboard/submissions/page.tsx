@@ -13,6 +13,8 @@ import {
   CheckCircle,
   XCircle,
   FileEdit,
+  ArrowRight,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,26 +34,28 @@ import api from '@/lib/api/client';
 import type { Species, Compound } from '@/types';
 
 export default function SubmissionsPage() {
-  const { user } = useAuthStore();
+  const { user, isLoading: authLoading } = useAuthStore();
 
-  // Fetch user's species
+  // Fetch user's species - only when user ID is definitively available
   const { data: mySpecies, isLoading: speciesLoading } = useQuery({
-    queryKey: ['my-species'],
+    queryKey: ['my-species', user?.id],
     queryFn: async () => {
-      const { data } = await api.get('/species', { params: { created_by: user?.id, per_page: 50 } });
+      if (!user?.id) throw new Error('User not authenticated');
+      const { data } = await api.get('/species', { params: { created_by: user.id, per_page: 100 } });
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
   });
 
-  // Fetch user's compounds
+  // Fetch user's compounds - only when user ID is definitively available
   const { data: myCompounds, isLoading: compoundsLoading } = useQuery({
-    queryKey: ['my-compounds'],
+    queryKey: ['my-compounds', user?.id],
     queryFn: async () => {
-      const { data } = await api.get('/compounds', { params: { created_by: user?.id, per_page: 50 } });
+      if (!user?.id) throw new Error('User not authenticated');
+      const { data } = await api.get('/compounds', { params: { created_by: user.id, per_page: 100 } });
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
   });
 
   const getStatusBadge = (status: string) => {
@@ -60,21 +64,21 @@ export default function SubmissionsPage() {
         return (
           <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Published
+            Dipublikasikan
           </Badge>
         );
       case 'pending':
         return (
           <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            Menunggu Review
           </Badge>
         );
       case 'rejected':
         return (
           <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
             <XCircle className="h-3 w-3 mr-1" />
-            Rejected
+            Ditolak
           </Badge>
         );
       default:
@@ -120,14 +124,62 @@ export default function SubmissionsPage() {
         </p>
       </div>
 
+      {/* Workflow Explanation */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+            <Info className="h-4 w-4" />
+            Alur Proses Kontribusi
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border">
+              <FileEdit className="h-3.5 w-3.5 text-gray-500" />
+              <span className="font-medium">Draft</span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-blue-400" />
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border">
+              <Clock className="h-3.5 w-3.5 text-orange-500" />
+              <span className="font-medium">Pending Review</span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-blue-400" />
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border">
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+              <span className="font-medium">Published</span>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-blue-700 space-y-1">
+            <p><strong>Draft:</strong> Data masih dalam penyuntingan. Klik &quot;Ajukan Verifikasi&quot; saat sudah siap.</p>
+            <p><strong>Pending Review:</strong> Sedang ditinjau oleh verifier. Tunggu hasil review.</p>
+            <p><strong>Published:</strong> Data sudah disetujui dan dipublikasikan ke database.</p>
+            <p><strong>Rejected:</strong> Ditolak oleh verifier. Anda dapat memperbaiki dan mengajukan ulang.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Kontribusi</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Total Kontribusi Saya</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{speciesStats.total + compoundStats.total}</div>
+            <p className="text-xs text-gray-400 mt-1">{speciesStats.total} spesies, {compoundStats.total} senyawa</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-1">
+              <FileEdit className="h-4 w-4 text-gray-500" /> Draft
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-gray-600">
+              {speciesStats.draft + compoundStats.draft}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Belum diajukan</p>
           </CardContent>
         </Card>
         <Card>
@@ -140,6 +192,7 @@ export default function SubmissionsPage() {
             <div className="text-3xl font-bold text-orange-600">
               {speciesStats.pending + compoundStats.pending}
             </div>
+            <p className="text-xs text-gray-400 mt-1">Sedang ditinjau verifier</p>
           </CardContent>
         </Card>
         <Card>
@@ -152,6 +205,7 @@ export default function SubmissionsPage() {
             <div className="text-3xl font-bold text-green-600">
               {speciesStats.published + compoundStats.published}
             </div>
+            <p className="text-xs text-gray-400 mt-1">Sudah live di database</p>
           </CardContent>
         </Card>
         <Card>
@@ -164,6 +218,7 @@ export default function SubmissionsPage() {
             <div className="text-3xl font-bold text-red-600">
               {speciesStats.rejected + compoundStats.rejected}
             </div>
+            <p className="text-xs text-gray-400 mt-1">Perlu diperbaiki</p>
           </CardContent>
         </Card>
       </div>
@@ -188,7 +243,7 @@ export default function SubmissionsPage() {
               <div>
                 <CardTitle>Spesies Saya</CardTitle>
                 <CardDescription>
-                  Data spesies yang Anda kontribusikan
+                  Data spesies yang Anda kontribusikan (bukan data bawaan database)
                 </CardDescription>
               </div>
               <Button asChild className="bg-green-600 hover:bg-green-700">
@@ -207,7 +262,8 @@ export default function SubmissionsPage() {
               ) : speciesList.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Flower2 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                  <p>Anda belum mengontribusikan spesies apapun</p>
+                  <p className="font-medium">Anda belum mengontribusikan spesies apapun</p>
+                  <p className="text-sm mt-1">Mulai kontribusi dengan menambahkan data spesies baru</p>
                   <Button asChild className="mt-4">
                     <Link href="/dashboard/species/new">Tambah Spesies Pertama</Link>
                   </Button>
@@ -269,7 +325,7 @@ export default function SubmissionsPage() {
               <div>
                 <CardTitle>Senyawa Saya</CardTitle>
                 <CardDescription>
-                  Data senyawa yang Anda kontribusikan
+                  Data senyawa yang Anda kontribusikan (bukan data bawaan database)
                 </CardDescription>
               </div>
               <Button asChild className="bg-green-600 hover:bg-green-700">
@@ -288,7 +344,8 @@ export default function SubmissionsPage() {
               ) : compoundsList.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <FlaskConical className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                  <p>Anda belum mengontribusikan senyawa apapun</p>
+                  <p className="font-medium">Anda belum mengontribusikan senyawa apapun</p>
+                  <p className="text-sm mt-1">Mulai kontribusi dengan menambahkan data senyawa baru</p>
                   <Button asChild className="mt-4">
                     <Link href="/dashboard/compounds/new">Tambah Senyawa Pertama</Link>
                   </Button>
