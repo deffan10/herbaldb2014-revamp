@@ -89,6 +89,13 @@ Access:
 - Frontend: http://localhost:3001
 - Backend API: http://localhost:8001/api/v1
 
+### 🚀 Production Deployment
+
+Untuk deployment ke production server (Debian/Ubuntu + Nginx), lihat panduan lengkap di:
+- 📖 [DEPLOYMENT.md](DEPLOYMENT.md) - Step-by-step deployment guide
+- 📁 `nginx/` - Ready-to-use Nginx config files
+- 📁 `scripts/setup-server.sh` - Automated setup script
+
 ## 📥 Legacy Data Import
 
 ### Full Import (Production)

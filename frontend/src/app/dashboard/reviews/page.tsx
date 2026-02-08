@@ -308,7 +308,7 @@ export default function ReviewsPage() {
           </Card>
         </TabsContent>
 
-        {/* Compounds Tab */}}
+        {/* Compounds Tab */}
         <TabsContent value="compounds">
           <Card>
             <CardHeader>

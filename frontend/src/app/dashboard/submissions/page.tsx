@@ -320,7 +320,7 @@ export default function SubmissionsPage() {
           </Card>
         </TabsContent>
 
-        {/* Compounds Tab */}}
+        {/* Compounds Tab */}
         <TabsContent value="compounds">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
