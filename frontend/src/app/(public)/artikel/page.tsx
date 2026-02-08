@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Newspaper, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -24,7 +24,7 @@ export default function ArticlesPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<Article>>({
     queryKey: ['articles', page],
     queryFn: () => articlesApi.getPaginated({ page, per_page: 10 }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const articles = data?.data || [];
