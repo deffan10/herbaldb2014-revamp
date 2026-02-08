@@ -89,6 +89,9 @@ export function Navbar() {
             <Link href="/mol-files" className={navLinkClass('/mol-files')}>
               MOL Files
             </Link>
+            <Link href="/artikel" className={navLinkClass('/artikel')}>
+              Artikel
+            </Link>
             <Link href="/contributors" className={navLinkClass('/contributors')}>
               Kontributor
             </Link>
@@ -199,6 +202,13 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Kontributor
+            </Link>
+            <Link
+              href="/artikel"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Artikel
             </Link>
             
             {isAuthenticated && user ? (

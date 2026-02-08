@@ -320,7 +320,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
@@ -383,19 +383,19 @@ export default function UsersPage() {
               <CardTitle>Daftar User</CardTitle>
               <CardDescription>Lihat dan kelola user terdaftar</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Cari user..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
+                  className="pl-9 w-full sm:w-48"
                 />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter role" />
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Semua Role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Role</SelectItem>
@@ -405,8 +405,8 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter status" />
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Status</SelectItem>
@@ -427,7 +427,8 @@ export default function UsersPage() {
               Tidak ada user ditemukan
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-6 px-6">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -581,6 +582,7 @@ export default function UsersPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

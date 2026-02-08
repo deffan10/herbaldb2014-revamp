@@ -7,11 +7,15 @@ use App\Models\CompoundGroup;
 use App\Models\LocalName;
 use App\Models\PlantPart;
 use App\Models\Reference;
+use App\Models\Article;
+use App\Models\ArticleAd;
 use App\Models\Species;
 use App\Models\User;
 use App\Models\Virtue;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SampleDataSeeder extends Seeder
 {
@@ -120,6 +124,52 @@ class SampleDataSeeder extends Seeder
                 );
                 $species->compounds()->attach($compound->id, ['plant_part_id' => $plantParts['Rhizome']->id]);
             }
+        }
+
+        // Seed sample articles (with tiny placeholder images)
+        $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wIAAgMBApN3WZ4AAAAASUVORK5CYII=');
+
+        $articles = [
+            [
+                'title' => 'Revitalisasi HerbalDB Indonesia',
+                'body_html' => '<p>Pembaruan HerbalDB menghadirkan UI baru, data molekuler, dan workflow kontribusi yang lebih rapi.</p>',
+            ],
+            [
+                'title' => 'Tips Berkontribusi Data Tanaman',
+                'body_html' => '<p>Pastikan referensi ilmiah tercantum, lengkapi nama lokal dan khasiat, lalu kirim untuk review.</p>',
+            ],
+            [
+                'title' => 'Mengenal Struktur MOL',
+                'body_html' => '<p>File MOL mempermudah visualisasi senyawa. Unggah struktur untuk melengkapi data senyawa bioaktif.</p>',
+            ],
+        ];
+
+        foreach ($articles as $index => $articleData) {
+            $imagePath = 'articles/sample-'.$index.'.png';
+            Storage::disk('public')->put($imagePath, $placeholder);
+
+            Article::create([
+                'title' => $articleData['title'],
+                'slug' => Str::slug($articleData['title']),
+                'body_html' => $articleData['body_html'],
+                'featured_image_path' => $imagePath,
+                'published_at' => now()->subDays($index),
+                'created_by' => $admin->id,
+            ]);
+        }
+
+        // Seed sidebar ads
+        for ($i = 1; $i <= 2; $i++) {
+            $adPath = 'article-ads/sample-ad-'.$i.'.png';
+            Storage::disk('public')->put($adPath, $placeholder);
+
+            ArticleAd::create([
+                'title' => 'Support HerbalDB #'.$i,
+                'image_path' => $adPath,
+                'target_url' => 'https://herbaldb.id/donate',
+                'is_active' => true,
+                'sort_order' => $i,
+            ]);
         }
         $this->command->info('Sample data seeded successfully!');
     }

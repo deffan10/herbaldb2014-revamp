@@ -112,8 +112,8 @@ export default function SpeciesPage() {
                 {data?.total || data?.meta?.total || 0} species found
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search species..."
@@ -122,7 +122,7 @@ export default function SpeciesPage() {
                     setSearchQuery(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-9 w-64"
+                  className="pl-9 w-full sm:w-48"
                 />
               </div>
               <Select 
@@ -132,7 +132,7 @@ export default function SpeciesPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-44">
                   <SelectValue placeholder="Filter by family" />
                 </SelectTrigger>
                 <SelectContent>
@@ -170,7 +170,8 @@ export default function SpeciesPage() {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto -mx-6 px-6">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Species Name</TableHead>
@@ -267,6 +268,7 @@ export default function SpeciesPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               {(data?.last_page || data?.meta?.last_page || 0) > 1 && (

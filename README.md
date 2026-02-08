@@ -3,6 +3,7 @@
 ![Status](https://img.shields.io/badge/Status-Active%20Development-green)
 ![Laravel](https://img.shields.io/badge/Backend-Laravel%2010-red)
 ![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black)
+![Version](https://img.shields.io/badge/Version-2.1.0-blue)
 
 Database komprehensif tanaman herbal Indonesia dan senyawa bioaktifnya. Proyek ini merupakan modernisasi dari sistem legacy HerbalDB 2014.
 
@@ -140,14 +141,20 @@ Base URL: `http://localhost:8001/api/v1`
 |--------|----------|-------------|
 | GET | `/species` | List species (paginated) |
 | GET | `/species/{id}` | Species detail + relations |
-| GET | `/species/search` | Search species |
+| GET | `/species/families` | List all families |
 | GET | `/compounds` | List compounds (paginated) |
 | GET | `/compounds/{id}` | Compound detail |
-| GET | `/compounds/search` | Search compounds |
+| GET | `/compounds/groups` | List compound groups |
 | GET | `/stats` | Database statistics |
 | GET | `/references` | List/search references |
 | GET | `/plant-parts` | List plant parts |
 | GET | `/contributors` | Top contributors |
+| GET | `/articles` | List articles (paginated) |
+| GET | `/articles/{slug}` | Article detail |
+| GET | `/articles/ads` | Public sidebar ads |
+| GET | `/donation-methods` | List donation methods |
+| GET | `/mol-files` | List MOL files |
+| GET | `/mol-files/{folder}/{filename}` | Download MOL file |
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -178,22 +185,45 @@ Base URL: `http://localhost:8001/api/v1`
 | POST | `/references` | authenticated |
 | PUT | `/references/{id}` | contributor/verifier/admin |
 | DELETE | `/references/{id}` | admin |
+| POST | `/articles` | admin |
+| PUT | `/articles/{id}` | admin |
+| DELETE | `/articles/{id}` | admin |
+| POST | `/articles/upload-image` | admin |
+| GET | `/admin/article-ads` | admin |
+| POST | `/admin/article-ads` | admin |
+| PUT | `/admin/article-ads/{id}` | admin |
+| DELETE | `/admin/article-ads/{id}` | admin |
+| GET | `/admin/users` | admin |
+| PUT | `/admin/users/{id}` | admin |
+| DELETE | `/admin/users/{id}` | admin |
+| GET | `/admin/donation-methods` | admin |
+| POST | `/admin/donation-methods` | admin |
+| PUT | `/admin/donation-methods/{id}` | admin |
+| DELETE | `/admin/donation-methods/{id}` | admin |
+| POST | `/admin/donation-methods/reorder` | admin |
+| POST | `/admin/mol-files` | admin |
+| DELETE | `/admin/mol-files/{folder}/{filename}` | admin |
 
 ## 📄 Frontend Pages
 
 ### Public Pages
-- `/` - Homepage dengan statistik & fitur unggulan
-- `/spesies` - Daftar semua spesies tanaman
-- `/spesies/[id]` - Detail spesies + senyawa + khasiat
-- `/senyawa` - Daftar semua senyawa bioaktif
-- `/senyawa/[id]` - Detail senyawa + spesies terkait
-- `/cari` - Pencarian spesies & senyawa
-- `/tentang` - Tentang HerbalDB
-- `/kontributor` - Daftar kontributor
-- `/donasi` - Halaman donasi
+- `/` - Homepage dengan statistik, fitur unggulan, & artikel terbaru
+- `/species` - Daftar semua spesies tanaman
+- `/species/[id]` - Detail spesies + senyawa + khasiat
+- `/compounds` - Daftar semua senyawa bioaktif
+- `/compounds/[id]` - Detail senyawa + spesies terkait
+- `/search` - Pencarian spesies & senyawa
+- `/mol-files` - Browse & download file MOL struktur molekul
+- `/artikel` - Daftar artikel
+- `/artikel/[slug]` - Detail artikel + sidebar ads
+- `/contributors` - Daftar kontributor
+- `/donasi` - Halaman donasi dengan metode pembayaran
+- `/login` - Login user
+- `/register` - Registrasi user baru
 
 ### Dashboard (Auth Required)
 - `/dashboard` - Overview statistics
+- `/dashboard/users` - User management (Admin only)
 - `/dashboard/species` - Manage species (list, status filter)
 - `/dashboard/species/new` - Create new species
 - `/dashboard/species/[id]/edit` - Edit species
@@ -201,9 +231,15 @@ Base URL: `http://localhost:8001/api/v1`
 - `/dashboard/compounds/new` - Create new compound
 - `/dashboard/compounds/[id]/edit` - Edit compound
 - `/dashboard/references` - Manage references (search, add, edit, delete)
-- `/dashboard/reviews` - Review pending items (Verifier only)
+- `/dashboard/reviews` - Review pending items (Verifier/Admin)
 - `/dashboard/submissions` - View my submissions (Contributor)
+- `/dashboard/changelog` - Activity log (Verifier/Admin)
 - `/dashboard/profile` - Edit profile + avatar
+- `/dashboard/settings` - User settings
+- `/dashboard/admin/articles` - Kelola artikel (Admin only)
+- `/dashboard/admin/article-ads` - Kelola iklan sidebar (Admin only)
+- `/dashboard/admin/donation-methods` - Kelola metode donasi (Admin only)
+- `/dashboard/admin/mol-files` - Upload file MOL (Admin only)
 
 ## 👥 User Roles & Workflow
 
@@ -343,6 +379,11 @@ server {
 - `virtues` - Khasiat/manfaat (species_id, virtue)
 - `compound_species` - Pivot table relasi senyawa-spesies
 
+### CMS Tables
+- `articles` - Artikel konten (title, slug, body_html, featured_image_path, published_at)
+- `article_ads` - Iklan sidebar (title, image_path, target_url, is_active, sort_order)
+- `donation_methods` - Metode donasi (name, type, account_number, account_name, qr_code_path, is_active, sort_order)
+
 ### Supporting Tables
 - `references` - Sumber referensi (source_name, authors, year, type, url, created_by)
 - `compound_groups` - Klasifikasi senyawa
@@ -358,6 +399,36 @@ server {
 5. Open Pull Request
 
 ## 📝 Changelog
+
+### v2.1.0 (February 2026) - CMS & Mobile Responsive
+- ✅ **CMS Artikel** - Admin dapat membuat/edit/hapus artikel dengan rich text editor
+- ✅ **Sidebar Ads** - Admin dapat mengatur iklan gambar di sidebar halaman artikel
+- ✅ **Halaman Artikel Publik** - `/artikel` list dan `/artikel/[slug]` detail
+- ✅ **Artikel di Homepage** - Section "Artikel Terbaru" dengan 3 artikel
+- ✅ **Halaman Donasi** - `/donasi` dengan multiple metode pembayaran (transfer bank, e-wallet, QR code)
+- ✅ **Admin Donation Methods** - CRUD metode donasi dengan drag & drop reorder
+- ✅ **MOL Files Browser** - `/mol-files` publik untuk browse & download file struktur molekul
+- ✅ **Admin MOL Upload** - Upload file MOL baru ke server
+- ✅ **API Security** - Semua endpoint write (POST/PUT/DELETE) dilindungi `auth:sanctum`
+- ✅ **Admin Middleware** - Endpoint admin memiliki middleware `role:admin` tambahan
+- ✅ **Mobile Responsive Dashboard** - Semua halaman dashboard responsive untuk mobile:
+  - User Management: table horizontal scroll, filter stack vertical
+  - Species: table horizontal scroll, filter stack vertical  
+  - Compounds: table horizontal scroll, filter stack vertical
+  - References: table horizontal scroll
+  - Reviews: table horizontal scroll untuk kedua tab
+  - Submissions: table horizontal scroll untuk kedua tab
+  - Changelog: filter stack vertical, stats grid 2 kolom
+  - Articles: table horizontal scroll, dialog responsive
+  - Article Ads: grid responsive, dialog responsive
+- ✅ **UI Fixes**:
+  - Fixed image upload preview overflow di modal artikel
+  - Fixed sidebar-header gap di dashboard layout
+  - Fixed &nbsp; showing di article previews
+  - Fixed ads endpoint 404 (route order issue)
+  - Added SheetTitle untuk accessibility di mobile sidebar
+  - Centered article titles dan justified body text
+  - Improved ad card spacing dengan flex gap
 
 ### v2.0.0 (2024) - Revamp
 - ✅ Migrasi dari PHP legacy ke Laravel 10 + Next.js 14

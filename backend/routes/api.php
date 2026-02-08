@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\DonationMethodController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PlantPartController;
+use App\Http\Controllers\Api\ArticleController;
+use App\Http\Controllers\Api\ArticleAdController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +46,11 @@ Route::prefix('v1')->group(function () {
 
     // Public plant parts route
     Route::get('/plant-parts', [PlantPartController::class, 'index']);
+
+    // Articles (public) — place ads route before slug catch-all
+    Route::get('/articles', [ArticleController::class, 'index']);
+    Route::get('/articles/ads', [ArticleAdController::class, 'publicIndex']);
+    Route::get('/articles/{article:slug}', [ArticleController::class, 'show']);
 
     // Public contributors route
     Route::get('/contributors', [StatsController::class, 'contributors']);
@@ -176,6 +183,26 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword'])
             ->middleware('role:admin');
         Route::delete('/admin/users/{user}', [UserController::class, 'destroy'])
+            ->middleware('role:admin');
+
+        // Articles management (admin only)
+        Route::post('/articles/upload-image', [ArticleController::class, 'uploadImage'])
+            ->middleware('role:admin');
+        Route::post('/articles', [ArticleController::class, 'store'])
+            ->middleware('role:admin');
+        Route::put('/articles/{article}', [ArticleController::class, 'update'])
+            ->middleware('role:admin');
+        Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])
+            ->middleware('role:admin');
+
+        // Article sidebar ads (admin only)
+        Route::get('/admin/article-ads', [ArticleAdController::class, 'index'])
+            ->middleware('role:admin');
+        Route::post('/admin/article-ads', [ArticleAdController::class, 'store'])
+            ->middleware('role:admin');
+        Route::put('/admin/article-ads/{articleAd}', [ArticleAdController::class, 'update'])
+            ->middleware('role:admin');
+        Route::delete('/admin/article-ads/{articleAd}', [ArticleAdController::class, 'destroy'])
             ->middleware('role:admin');
     });
 });

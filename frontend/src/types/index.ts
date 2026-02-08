@@ -169,6 +169,40 @@ export interface Reference {
   url?: string;
 }
 
+// Article Types
+export interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  body_html: string;
+  featured_image_path: string;
+  featured_image_url?: string;
+  published_at?: string;
+  created_by?: number;
+  created_at: string;
+  updated_at: string;
+  creator?: User;
+}
+
+export interface ArticleAd {
+  id: number;
+  title?: string | null;
+  image_path: string;
+  image_url?: string;
+  target_url?: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ArticlePayload {
+  title: string;
+  body_html: string;
+  featured_image_path: string;
+  published_at?: string | null;
+}
+
 // Contribution Types
 export interface Contribution {
   id: number;

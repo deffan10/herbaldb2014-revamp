@@ -178,7 +178,7 @@ export default function ReviewsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">Total Pending</CardTitle>
@@ -243,7 +243,8 @@ export default function ReviewsPage() {
                   Tidak ada spesies yang menunggu verifikasi
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto -mx-6 px-6">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Ilmiah</TableHead>
@@ -301,12 +302,13 @@ export default function ReviewsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Compounds Tab */}
+        {/* Compounds Tab */}}
         <TabsContent value="compounds">
           <Card>
             <CardHeader>
@@ -327,7 +329,8 @@ export default function ReviewsPage() {
                   Tidak ada senyawa yang menunggu verifikasi
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto -mx-6 px-6">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Senyawa</TableHead>
@@ -384,6 +387,7 @@ export default function ReviewsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

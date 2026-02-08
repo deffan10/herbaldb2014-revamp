@@ -19,10 +19,12 @@ import {
   History,
   Heart,
   BookOpen,
+  Newspaper,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +60,18 @@ const navItems: NavItem[] = [
     title: 'Metode Donasi',
     href: '/dashboard/admin/donation-methods',
     icon: Heart,
+    roles: ['admin'],
+  },
+  {
+    title: 'Artikel',
+    href: '/dashboard/admin/articles',
+    icon: Newspaper,
+    roles: ['admin'],
+  },
+  {
+    title: 'Iklan Sidebar',
+    href: '/dashboard/admin/article-ads',
+    icon: ImageIcon,
     roles: ['admin'],
   },
   {
@@ -202,8 +216,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64">
-        <Sidebar />
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:z-50">
+        <Sidebar className="w-full" />
       </aside>
 
       {/* Mobile Header */}
@@ -216,6 +230,7 @@ export default function DashboardLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <Sidebar />
             </SheetContent>
           </Sheet>
@@ -297,7 +312,7 @@ export default function DashboardLayout({
       </header>
 
       {/* Main Content */}
-      <main className="lg:pl-64 pt-16">
+      <main className="lg:pl-64 pt-16 min-h-screen">
         <div className="p-6">{children}</div>
       </main>
     </div>

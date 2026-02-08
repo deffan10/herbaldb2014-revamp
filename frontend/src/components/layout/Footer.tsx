@@ -47,6 +47,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/artikel" className="text-gray-400 hover:text-white text-sm">
+                  Artikel
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="text-gray-400 hover:text-white text-sm">
                   Tentang Kami
                 </Link>

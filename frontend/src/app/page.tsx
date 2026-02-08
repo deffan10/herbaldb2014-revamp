@@ -10,12 +10,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { statsApi, Stats } from '@/lib/api/stats';
+import { articlesApi } from '@/lib/api/articles';
+import type { Article } from '@/types';
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [latestArticles, setLatestArticles] = useState<Article[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -31,6 +35,20 @@ export default function HomePage() {
     fetchStats();
   }, []);
 
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const data = await articlesApi.getLatest(3);
+        setLatestArticles(data);
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      } finally {
+        setArticlesLoading(false);
+      }
+    };
+    fetchArticles();
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -40,6 +58,15 @@ export default function HomePage() {
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString('id-ID');
+  };
+
+  const snippet = (html: string): string => {
+    // Strip tags and decode common nbsp entities so cards don't show "&nbsp;"
+    const plain = html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ');
+    return plain.trim().slice(0, 160) + (plain.length > 160 ? '…' : '');
   };
 
   const statsDisplay = [
@@ -219,6 +246,66 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Articles Section */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Artikel Terbaru</h2>
+              <p className="text-gray-600 mb-4">Tulisan terbaru seputar HerbalDB dan dunia herbal Indonesia.</p>
+              <Button asChild className="bg-green-600 hover:bg-green-700">
+                <Link href="/artikel">Berita Lainnya</Link>
+              </Button>
+            </div>
+
+            {articlesLoading ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="shadow-sm">
+                    <div className="h-40 bg-gray-100 animate-pulse" />
+                    <CardHeader>
+                      <CardTitle className="text-lg">
+                        <span className="block bg-gray-100 h-5 w-3/4 animate-pulse rounded" />
+                      </CardTitle>
+                      <CardDescription>
+                        <span className="block bg-gray-100 h-4 w-full animate-pulse rounded" />
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : latestArticles.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">Belum ada artikel.</div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6">
+                {latestArticles.map((article) => (
+                  <Link key={article.id} href={`/artikel/${article.slug}`}>
+                    <Card className="h-full shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+                      <div className="h-44 bg-gray-100 overflow-hidden">
+                        {article.featured_image_url ? (
+                          <img
+                            src={article.featured_image_url}
+                            alt={article.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100" />
+                        )}
+                      </div>
+                      <CardHeader className="text-center">
+                        <CardTitle className="text-lg line-clamp-2">{article.title}</CardTitle>
+                        <CardDescription className="line-clamp-2 text-gray-600">
+                          {snippet(article.body_html)}
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

@@ -269,7 +269,8 @@ export default function SubmissionsPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto -mx-6 px-6">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Ilmiah</TableHead>
@@ -313,12 +314,13 @@ export default function SubmissionsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Compounds Tab */}
+        {/* Compounds Tab */}}
         <TabsContent value="compounds">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -351,7 +353,8 @@ export default function SubmissionsPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto -mx-6 px-6">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Senyawa</TableHead>
@@ -394,6 +397,7 @@ export default function SubmissionsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
