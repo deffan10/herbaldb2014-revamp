@@ -96,7 +96,7 @@ export default function HomePage() {
     },
     {
       label: 'Kunjungan Web',
-      value: typeof stats?.homepage_visits === 'number' ? stats.homepage_visits : '-',
+      value: '-', // Placeholder, akan diisi data Google Analytics
       icon: Globe,
       href: '#analytics'
     },
