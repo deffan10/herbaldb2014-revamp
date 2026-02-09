@@ -194,7 +194,7 @@ export default function HomePage() {
         {/* Stats Section */}
         <section className="py-12 bg-white border-y border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {statsDisplay.map((stat) => (
                 <Link 
                   key={stat.label} 
@@ -208,7 +208,7 @@ export default function HomePage() {
                     {loading ? (
                       <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                     ) : (
-                      typeof stat.value === 'number' ? formatNumber(stat.value) : stat.value
+                      formatNumber(stat.value)
                     )}
                   </div>
                   <div className="text-sm text-gray-500">{stat.label}</div>
