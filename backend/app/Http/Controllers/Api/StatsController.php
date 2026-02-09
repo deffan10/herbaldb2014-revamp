@@ -18,8 +18,8 @@ class StatsController extends Controller
     {
         // Cache stats for 1 hour to reduce database load
 
-        // Hit counter: increment setiap kali endpoint ini diakses (anggap homepage hit)
-        $visits = visits('homepage')->increment()->count();
+        // Hit counter sementara dinonaktifkan karena error Redis
+        $visits = 0;
 
         $stats = Cache::remember('homepage_stats', 3600, function () use ($visits) {
             return [
