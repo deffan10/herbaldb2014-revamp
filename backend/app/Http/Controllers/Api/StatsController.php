@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Visits;
 
 class StatsController extends Controller
 {
@@ -16,7 +17,11 @@ class StatsController extends Controller
     public function index(): JsonResponse
     {
         // Cache stats for 1 hour to reduce database load
-        $stats = Cache::remember('homepage_stats', 3600, function () {
+
+        // Hit counter: increment setiap kali endpoint ini diakses (anggap homepage hit)
+        $visits = visits('homepage')->increment()->count();
+
+        $stats = Cache::remember('homepage_stats', 3600, function () use ($visits) {
             return [
                 'species' => DB::table('species')->where('status', 'published')->count(),
                 'compounds' => DB::table('compounds')->where('status', 'published')->count(),
@@ -26,6 +31,7 @@ class StatsController extends Controller
                 'virtues' => DB::table('virtues')->count(),
                 'compound_groups' => DB::table('compound_groups')->count(),
                 'plant_parts' => DB::table('plant_parts')->count(),
+                'homepage_visits' => $visits,
             ];
         });
 

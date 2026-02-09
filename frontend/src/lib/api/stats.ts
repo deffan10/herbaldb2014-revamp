@@ -9,6 +9,7 @@ export interface Stats {
   virtues: number;
   compound_groups: number;
   plant_parts: number;
+  homepage_visits?: number;
 }
 
 export interface StatsResponse {
