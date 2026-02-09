@@ -208,7 +208,7 @@ export default function HomePage() {
                     {loading ? (
                       <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                     ) : (
-                      typeof stat.value === 'number' ? formatNumber(stat.value) : '-'
+                      formatNumber(stat.value)
                     )}
                   </div>
                   <div className="text-sm text-gray-500">{stat.label}</div>
