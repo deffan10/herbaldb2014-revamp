@@ -94,6 +94,12 @@ export default function HomePage() {
       icon: Users,
       href: '/contributors'
     },
+    {
+      label: 'Kunjungan Web',
+      value: '-', // Placeholder, akan diisi data Google Analytics
+      icon: Globe,
+      href: '#analytics'
+    },
   ];
 
   const features = [
