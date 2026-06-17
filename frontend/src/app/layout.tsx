@@ -24,6 +24,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5526288161802891"
+          crossOrigin="anonymous"
+        ></script>
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZVY9ES3XP0"></script>
         <script
