@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { Suspense } from "react";
+import { GoogleAnalyticsTracker } from "@/components/layout";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,13 +32,18 @@ export default function RootLayout({
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'G-ZVY9ES3XP0');
+              gtag('config', 'G-ZVY9ES3XP0', { send_page_view: false });
             `,
           }}
         />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense fallback={null}>
+            <GoogleAnalyticsTracker gaId="G-ZVY9ES3XP0" />
+          </Suspense>
+          {children}
+        </Providers>
       </body>
     </html>
   );
